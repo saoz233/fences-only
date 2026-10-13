@@ -2,7 +2,7 @@
 
 一款运行于 **Windows 11**（兼容 Windows 10 x64）的轻量级桌面图标整理工具，形态参考 [Stardock Fences](https://www.stardock.com/products/fences/)。用多个半透明「栅栏（Fence）」容器把杂乱的桌面图标分组归纳，让桌面整洁、简约、可一键管理。
 
-- 界面全简体中文，贴合 Windows 11 设计语言（圆角、亚克力毛玻璃半透明）
+- 界面全简体中文，贴合 Windows 11 设计语言（圆角、半透明）
 - 支持浅色 / 深色主题（可跟随系统）
 - 常驻系统托盘，支持开机自启
 - 配置本地持久化，重启自动恢复布局
@@ -121,7 +121,7 @@ dotnet publish src\DesktopFences\DesktopFences.csproj -c Release -r win-x64 ^
 - **托盘**：WinForms `NotifyIcon`（框架自带，无第三方依赖）
 - **序列化**：System.Text.Json
 - **原生能力 (P/Invoke)**：
-  - 亚克力毛玻璃：`SetWindowCompositionAttribute` + Win11 圆角 `DwmSetWindowAttribute`
+  - 半透明背景（主题色 + 可调透明度）+ Win11 圆角 `DwmSetWindowAttribute`
   - 图标提取：`SHGetFileInfo`
   - 桌面双击检测：低级全局鼠标钩子 `WH_MOUSE_LL`
   - 启动目标：`ShellExecute`

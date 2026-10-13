@@ -44,7 +44,7 @@ public static class ThemeService
     }
 
     /// <summary>读取系统是否为深色模式（注册表 AppsUseLightTheme=0 表示深色）。</summary>
-    public static bool IsSystemDark()
+    private static bool IsSystemDark()
     {
         try
         {

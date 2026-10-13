@@ -25,14 +25,20 @@
     <Product>桌面栅栏 DesktopFences</Product>
     <Description>Windows 11 桌面图标整理工具（类 Stardock Fences）</Description>
 
-    <!-- 支持高 DPI -->
+    <!-- 只保留中文卫星资源，去除其它语言，减小体积 -->
     <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
   </PropertyGroup>
 
-  <!-- 发布为单文件、自包含（打包脚本会使用） -->
+  <!-- 发布优化：减小体积、降低启动与内存开销 -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <!-- 使用不变区域性，省去 ICU 国际化数据加载 -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- 关闭诊断/事件源元数据，减小体积与内存 -->
+    <EventSourceSupport>false</EventSourceSupport>
+    <!-- 关闭 HTTP 活动追踪等不需要的特性 -->
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
   </PropertyGroup>
 
   <ItemGroup>

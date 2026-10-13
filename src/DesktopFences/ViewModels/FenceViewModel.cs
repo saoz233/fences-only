@@ -150,9 +150,6 @@ public partial class FenceViewModel : ObservableObject
         Changed?.Invoke();
     }
 
-    /// <summary>外部主动触发一次持久化（如拖动/缩放结束）。</summary>
-    public void NotifyChanged() => Changed?.Invoke();
-
     /// <summary>更新位置尺寸（窗口移动/缩放后同步到模型）。</summary>
     public void UpdateBounds(double left, double top, double width, double height)
     {

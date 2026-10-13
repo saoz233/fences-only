@@ -5,8 +5,8 @@ using System.Text;
 namespace DesktopFences.Helpers;
 
 /// <summary>
-/// Win32 / DWM 原生互操作封装：亚克力毛玻璃效果、窗口样式（工具窗/置底/不激活）、
-/// 图标提取 (SHGetFileInfo)、低级全局鼠标钩子、桌面命中判断等。
+/// Win32 / DWM 原生互操作封装：窗口样式（工具窗/置底）、Win11 圆角、
+/// 图标提取 (SHGetFileInfo)、低级全局鼠标钩子、鼠标坐标、桌面命中判断等。
 /// </summary>
 internal static class Win32Interop
 {
@@ -14,7 +14,6 @@ internal static class Win32Interop
 
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_TOOLWINDOW = 0x00000080; // 不在任务栏/Alt-Tab 显示
-    public const int WS_EX_NOACTIVATE = 0x08000000; // 点击不抢焦点
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -32,7 +31,7 @@ internal static class Win32Interop
     }
 
     // 置底（贴近桌面层，但位于图标之上）
-    public static readonly IntPtr HWND_BOTTOM = new(1);
+    private static readonly IntPtr HWND_BOTTOM = new(1);
     private const uint SWP_NOSIZE = 0x0001;
     private const uint SWP_NOMOVE = 0x0002;
     private const uint SWP_NOACTIVATE = 0x0010;
@@ -48,65 +47,8 @@ internal static class Win32Interop
         SetWindowPos(hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
     }
 
-    // ============ 亚克力 / 毛玻璃背景 ============
+    // ============ 圆角（Win11 DWM） ============
 
-    [StructLayout(LayoutKind.Sequential)]
-    private struct AccentPolicy
-    {
-        public int AccentState;
-        public int AccentFlags;
-        public uint GradientColor;
-        public int AnimationId;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WindowCompositionAttributeData
-    {
-        public int Attribute;
-        public IntPtr Data;
-        public int SizeOfData;
-    }
-
-    [DllImport("user32.dll")]
-    private static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
-
-    private const int WCA_ACCENT_POLICY = 19;
-    private const int ACCENT_ENABLE_ACRYLICBLURBEHIND = 4;
-    private const int ACCENT_ENABLE_BLURBEHIND = 3;
-
-    /// <summary>
-    /// 对窗口启用亚克力毛玻璃效果。
-    /// </summary>
-    /// <param name="hwnd">窗口句柄。</param>
-    /// <param name="tintColorAbgr">着色 (0xAABBGGRR)，含不透明度。</param>
-    public static void EnableAcrylic(IntPtr hwnd, uint tintColorAbgr)
-    {
-        var accent = new AccentPolicy
-        {
-            AccentState = ACCENT_ENABLE_ACRYLICBLURBEHIND,
-            GradientColor = tintColorAbgr
-        };
-
-        int size = Marshal.SizeOf(accent);
-        IntPtr ptr = Marshal.AllocHGlobal(size);
-        try
-        {
-            Marshal.StructureToPtr(accent, ptr, false);
-            var data = new WindowCompositionAttributeData
-            {
-                Attribute = WCA_ACCENT_POLICY,
-                SizeOfData = size,
-                Data = ptr
-            };
-            SetWindowCompositionAttribute(hwnd, ref data);
-        }
-        finally
-        {
-            Marshal.FreeHGlobal(ptr);
-        }
-    }
-
-    // 圆角（Win11 DWM）
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
 
@@ -137,7 +79,6 @@ internal static class Win32Interop
 
     public const uint SHGFI_ICON = 0x000000100;
     public const uint SHGFI_LARGEICON = 0x000000000;
-    public const uint SHGFI_SMALLICON = 0x000000001;
     public const uint SHGFI_USEFILEATTRIBUTES = 0x000000010;
 
     [DllImport("shell32.dll", CharSet = CharSet.Auto)]
@@ -152,7 +93,6 @@ internal static class Win32Interop
 
     public const int WH_MOUSE_LL = 14;
     public const int WM_LBUTTONDOWN = 0x0201;
-    public const int WM_LBUTTONDBLCLK = 0x0203;
 
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT { public int x; public int y; }
