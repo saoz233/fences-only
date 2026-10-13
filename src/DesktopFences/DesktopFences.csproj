@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- WPF 应用，目标框架为 Windows 专属的 .NET 8 -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- 启用 WinForms 仅为使用稳定的系统托盘 NotifyIcon（框架自带，无第三方依赖） -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+
+    <!-- 应用元信息 -->
+    <AssemblyName>DesktopFences</AssemblyName>
+    <RootNamespace>DesktopFences</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- 可选：放置 Assets\app.ico 后取消下一行注释以启用应用图标 -->
+    <!-- <ApplicationIcon>Assets\app.ico</ApplicationIcon> -->
+    <Version>1.0.0</Version>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Company>DesktopFences</Company>
+    <Product>桌面栅栏 DesktopFences</Product>
+    <Description>Windows 11 桌面图标整理工具（类 Stardock Fences）</Description>
+
+    <!-- 支持高 DPI -->
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <!-- 发布为单文件、自包含（打包脚本会使用） -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+
+  <!-- 移除 WinForms/Drawing 的全局 using，避免与 WPF 的 Application/MessageBox/Point/Color 等类型冲突。
+       托盘代码在 Helpers/TrayMenu.cs 中以完全限定名使用 WinForms。 -->
+  <ItemGroup Condition="'$(ImplicitUsings)' == 'enable'">
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+</Project>

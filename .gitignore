@@ -1,0 +1,17 @@
+# ===== .NET / Build =====
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+
+# ===== Inno Setup 输出 =====
+installer/Output/
+
+# ===== macOS =====
+.DS_Store
+
+# ===== Rider / VS Code =====
+.idea/
+.vscode/

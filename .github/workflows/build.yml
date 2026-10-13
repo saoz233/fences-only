@@ -1,0 +1,74 @@
+name: 构建 Windows 安装包
+
+# 触发条件：推送到 main 分支、或打 tag（v 开头）、或手动触发
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 还原依赖
+        run: dotnet restore DesktopFences.sln
+
+      - name: 发布应用 (Release / win-x64 / 自包含 / 单文件)
+        run: >
+          dotnet publish src/DesktopFences/DesktopFences.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o publish
+
+      - name: 安装 Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: 下载简体中文语言文件
+        shell: pwsh
+        run: >
+          Invoke-WebRequest
+          -Uri "https://raw.githubusercontent.com/jrsoftware/issrc/main/Files/Languages/Unofficial/ChineseSimplified.isl"
+          -OutFile "C:\Program Files (x86)\Inno Setup 6\Languages\ChineseSimplified.isl"
+
+      - name: 确保脚本为 UTF-8 BOM 编码（中文不乱码）
+        shell: pwsh
+        run: |
+          $p = "installer\setup.iss"
+          $content = Get-Content $p -Raw -Encoding UTF8
+          $enc = New-Object System.Text.UTF8Encoding($true)
+          [System.IO.File]::WriteAllText((Resolve-Path $p), $content, $enc)
+
+      - name: 生成安装包
+        run: >
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\setup.iss
+        shell: pwsh
+
+      - name: 上传安装包为构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: DesktopFencesSetup
+          path: installer/Output/DesktopFencesSetup.exe
+          if-no-files-found: error
+
+      # 当推送的是 tag (v*) 时，自动创建 GitHub Release 并附带安装包
+      - name: 发布 Release（仅打 tag 时）
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: installer/Output/DesktopFencesSetup.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
