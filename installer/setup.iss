@@ -34,7 +34,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ShowLanguageDialog=no
 
 [Languages]
-Name: "chinesesimplified"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+; 直接引用仓库内随附的简体中文语言文件（无需下载/无需放入 Inno Setup 安装目录）
+Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
