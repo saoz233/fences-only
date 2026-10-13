@@ -63,6 +63,13 @@
                       FontSize="14"
                       Foreground="{DynamicResource TextPrimaryBrush}"
                       IsChecked="{Binding AutoStart}"
+                      Margin="0,0,0,12" />
+
+            <!-- 桌面右键菜单 -->
+            <CheckBox Content="在桌面空白处右键菜单显示“新建栅栏”"
+                      FontSize="14"
+                      Foreground="{DynamicResource TextPrimaryBrush}"
+                      IsChecked="{Binding ShowDesktopMenu}"
                       Margin="0,0,0,20" />
 
             <!-- 快捷操作 -->

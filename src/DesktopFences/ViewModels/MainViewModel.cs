@@ -85,13 +85,27 @@ public partial class MainViewModel : ObservableObject, IDisposable
         return vm;
     }
 
-    /// <summary>新建一个栅栏（托盘菜单调用）。</summary>
-    public void CreateFence()
+    /// <summary>新建一个栅栏（托盘菜单调用，使用默认位置）。</summary>
+    public void CreateFence() => CreateFence(null, null);
+
+    /// <summary>在鼠标当前位置新建一个栅栏（桌面右键菜单调用）。</summary>
+    public void CreateFenceAtCursor()
+    {
+        var (x, y) = Helpers.Win32Interop.GetCursorDip();
+        // 让容器中心靠近鼠标一点
+        CreateFence(x - 40, y - 16);
+    }
+
+    /// <summary>新建一个栅栏，可指定左上角位置。</summary>
+    public void CreateFence(double? left, double? top)
     {
         var model = new FenceModel
         {
             Title = "新建栅栏",
-            Left = 160, Top = 160, Width = 300, Height = 240
+            Left = left ?? 160,
+            Top = top ?? 160,
+            Width = 300,
+            Height = 240
         };
         Settings.Fences.Add(model);
 
@@ -101,6 +115,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         var vm = CreateFenceWindow(model);
         _windows[vm].Show();
+        _windows[vm].Activate();
         SaveNow();
     }
 
@@ -153,6 +168,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         AutoStartService.SetEnabled(enabled);
         Settings.AutoStart = AutoStartService.IsEnabled();
+        SaveNow();
+    }
+
+    /// <summary>设置是否在桌面右键菜单显示「新建栅栏」。</summary>
+    public void SetShowDesktopMenu(bool enabled)
+    {
+        Settings.ShowDesktopMenu = enabled;
+        ShellMenuService.Sync(enabled);
         SaveNow();
     }
 

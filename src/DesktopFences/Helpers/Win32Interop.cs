@@ -182,6 +182,50 @@ internal static class Win32Interop
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     public static extern IntPtr GetModuleHandle(string? lpModuleName);
 
+    // ============ 鼠标坐标 ============
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetCursorPos(out POINT lpPoint);
+
+    /// <summary>
+    /// 获取鼠标当前位置并换算为 WPF 的 DIP 坐标（除以系统 DPI 缩放）。
+    /// </summary>
+    public static (double x, double y) GetCursorDip()
+    {
+        if (!GetCursorPos(out var p))
+            return (160, 160);
+
+        double scale = GetSystemDpiScale();
+        return (p.x / scale, p.y / scale);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetDC(IntPtr hWnd);
+
+    [DllImport("user32.dll")]
+    private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+    [DllImport("gdi32.dll")]
+    private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+    private const int LOGPIXELSX = 88;
+
+    private static double GetSystemDpiScale()
+    {
+        IntPtr dc = GetDC(IntPtr.Zero);
+        if (dc == IntPtr.Zero) return 1.0;
+        try
+        {
+            int dpi = GetDeviceCaps(dc, LOGPIXELSX);
+            return dpi <= 0 ? 1.0 : dpi / 96.0;
+        }
+        finally
+        {
+            ReleaseDC(IntPtr.Zero, dc);
+        }
+    }
+
     // ============ 桌面命中判断 ============
 
     [DllImport("user32.dll")]

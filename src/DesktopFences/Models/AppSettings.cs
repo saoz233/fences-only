@@ -32,6 +32,9 @@ public class AppSettings
     /// <summary>栅栏当前是否全部可见（双击桌面切换）。</summary>
     public bool FencesVisible { get; set; } = true;
 
+    /// <summary>是否在桌面空白处右键菜单显示「新建栅栏」。</summary>
+    public bool ShowDesktopMenu { get; set; } = true;
+
     /// <summary>所有栅栏容器。</summary>
     public List<FenceModel> Fences { get; set; } = new();
 }

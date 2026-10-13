@@ -19,6 +19,7 @@ public partial class SettingsViewModel : ObservableObject
         _isSystem = main.Settings.Theme == AppTheme.System;
         _autoStart = main.Settings.AutoStart;
         _opacity = main.GetCurrentOpacity();
+        _showDesktopMenu = main.Settings.ShowDesktopMenu;
     }
 
     // 三选一的主题单选
@@ -57,6 +58,14 @@ public partial class SettingsViewModel : ObservableObject
         // 以注册表实际结果回写，避免策略限制导致不一致
         _autoStart = _main.Settings.AutoStart;
         OnPropertyChanged(nameof(AutoStart));
+    }
+
+    /// <summary>是否在桌面右键菜单显示「新建栅栏」。</summary>
+    [ObservableProperty] private bool _showDesktopMenu;
+
+    partial void OnShowDesktopMenuChanged(bool value)
+    {
+        _main.SetShowDesktopMenu(value);
     }
 
     /// <summary>新建栅栏。</summary>

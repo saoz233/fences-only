@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using DesktopFences.Services;
@@ -9,11 +10,18 @@ namespace DesktopFences;
 
 /// <summary>
 /// 应用启动入口（自写入口，避免 WPF ApplicationDefinition 自动生成 Main 造成重复入口）。
-/// 负责单实例控制、资源字典加载、托盘初始化、恢复栅栏布局、主题与全局钩子。
+/// 负责单实例控制、资源字典加载、托盘初始化、恢复栅栏布局、主题、全局钩子，
+/// 以及响应桌面右键菜单的「新建栅栏」命令（通过命名事件做进程间通信）。
 /// </summary>
 public class App : Application
 {
+    private const string MutexName = "DesktopFences_SingleInstance_Mutex_7F3A";
+    private const string NewFenceEventName = "DesktopFences_NewFence_Event_7F3A";
+    private const string NewFenceArg = "--new-fence";
+
     private static Mutex? _mutex;
+    private static EventWaitHandle? _newFenceEvent;
+    private static RegisteredWaitHandle? _registeredWait;
 
     /// <summary>全局主视图模型（容器集合与全局状态）。</summary>
     public static MainViewModel MainVM { get; private set; } = null!;
@@ -24,6 +32,31 @@ public class App : Application
     [STAThread]
     public static int Main(string[] args)
     {
+        bool wantNewFence = args.Contains(NewFenceArg);
+
+        // 单实例检测
+        _mutex = new Mutex(true, MutexName, out bool createdNew);
+        if (!createdNew)
+        {
+            // 已有实例在运行
+            if (wantNewFence)
+            {
+                // 通知正在运行的实例新建栅栏，然后退出本进程
+                try
+                {
+                    var ev = EventWaitHandle.OpenExisting(NewFenceEventName);
+                    ev.Set();
+                }
+                catch { /* 打开失败则忽略 */ }
+            }
+            else
+            {
+                MessageBox.Show("桌面栅栏已在运行中。", "桌面栅栏",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            return 0;
+        }
+
         var app = new App();
         app.InitializeResources();
         return app.Run();
@@ -47,46 +80,66 @@ public class App : Application
     {
         base.OnStartup(e);
 
-        // 1) 单实例：命名 Mutex 防止多开
-        _mutex = new Mutex(true, "DesktopFences_SingleInstance_Mutex_7F3A", out bool createdNew);
-        if (!createdNew)
-        {
-            MessageBox.Show("桌面栅栏已在运行中。", "桌面栅栏",
-                MessageBoxButton.OK, MessageBoxImage.Information);
-            Shutdown();
-            return;
-        }
-
-        // 2) 没有主窗口，退出模式改为显式退出（仅托盘退出时关闭）
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-        // 3) 加载配置并构建主视图模型
+        // 加载配置并构建主视图模型
         MainVM = new MainViewModel();
         MainVM.Initialize();
 
-        // 4) 应用主题（浅/深色，或跟随系统）
+        // 应用主题
         ThemeService.Apply(MainVM.Settings.Theme);
 
-        // 5) 初始化系统托盘图标与右键菜单
+        // 托盘
         _tray = TrayMenu.Create(MainVM);
 
-        // 6) 恢复上次保存的栅栏窗口布局
+        // 恢复布局
         MainVM.RestoreFences();
 
-        // 7) 启动全局鼠标钩子（检测桌面空白双击 => 显隐全部）
+        // 全局桌面双击钩子
         MainVM.StartDesktopHook();
+
+        // 同步「桌面右键菜单」注册状态
+        ShellMenuService.Sync(MainVM.Settings.ShowDesktopMenu);
+
+        // 建立进程间通信：监听「新建栅栏」命名事件
+        SetupNewFenceListener();
+
+        // 若本次就是通过桌面右键菜单启动（之前无实例），直接在鼠标处新建一个
+        if (Environment.GetCommandLineArgs().Contains(NewFenceArg))
+        {
+            Dispatcher.BeginInvoke(() => MainVM.CreateFenceAtCursor());
+        }
+    }
+
+    /// <summary>创建命名事件并注册等待回调，收到信号时在鼠标处新建栅栏。</summary>
+    private void SetupNewFenceListener()
+    {
+        _newFenceEvent = new EventWaitHandle(false, EventResetMode.AutoReset, NewFenceEventName);
+        _registeredWait = ThreadPool.RegisterWaitForSingleObject(
+            _newFenceEvent,
+            (state, timedOut) =>
+            {
+                // 回调在线程池线程，切回 UI 线程操作窗口
+                Dispatcher.BeginInvoke(() => MainVM?.CreateFenceAtCursor());
+            },
+            null,
+            Timeout.Infinite,
+            executeOnlyOnce: false);
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
-        // 退出前持久化并释放所有非托管资源
         try { MainVM?.SaveNow(); } catch { /* 忽略退出保存异常 */ }
         MainVM?.Dispose();
+
         if (_tray is not null)
         {
             _tray.Visible = false;
             _tray.Dispose();
         }
+
+        _registeredWait?.Unregister(null);
+        _newFenceEvent?.Dispose();
 
         if (_mutex is not null)
         {

@@ -56,6 +56,9 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     ValueType: string; ValueName: "DesktopFences"; \
     ValueData: """{app}\{#MyAppExeName}"""; \
     Flags: uninsdeletevalue; Tasks: autostart
+; 卸载时清理桌面右键菜单项（由程序运行时按需写入，这里确保卸载后不残留）
+Root: HKCU; Subkey: "Software\Classes\DesktopBackground\Shell\DesktopFences"; \
+    Flags: dontcreatekey uninsdeletekey
 
 [Run]
 ; 安装完成后可选择立即运行
