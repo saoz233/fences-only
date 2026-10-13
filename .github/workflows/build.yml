@@ -10,6 +10,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
+    # 允许工作流的 GITHUB_TOKEN 写入仓库内容（创建 Release 需要）
+    permissions:
+      contents: write
 
     steps:
       - name: 检出代码
